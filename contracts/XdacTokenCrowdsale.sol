@@ -11,7 +11,7 @@ import "../node_modules/zeppelin-solidity/contracts/crowdsale/validation/CappedC
  * MintedCrowdsale - Extension of Crowdsale contract whose tokens are minted in each purchase.
  * _goal - 1400 ether soft cap
  * _cap - 35400 ether hard cap
- * _openingTime - March 15, 2018
+ * _openingTime - March 21, 2018
  * _closingTime - August 31, 2018
  */
 contract XdacTokenCrowdsale is CappedCrowdsale {

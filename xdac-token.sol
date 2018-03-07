@@ -309,7 +309,7 @@ contract MintableToken is StandardToken, Ownable {
 // File: contracts/XdacToken.sol
 
 contract XdacToken is StandardToken, Ownable {
-    string public name = "xDAC COIN";
+    string public name = "XDAC COIN";
     string public symbol = "XDAC";
     uint8 public decimals = 18;
     uint256 totalSupply_ = 1000000000;
