@@ -30,7 +30,6 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
     {
         require(_roundRates.length == 5);
         require(_roundGoals.length == 5);
-        require(_roundGoals.length == 5);
         roundGoals = _roundGoals;
         roundRates = _roundRates;
         minContribution = _minContribution;
