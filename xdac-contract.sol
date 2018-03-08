@@ -231,128 +231,42 @@ contract Crowdsale {
   }
 }
 
-// File: node_modules/zeppelin-solidity/contracts/crowdsale/validation/TimedCrowdsale.sol
+// File: node_modules/zeppelin-solidity/contracts/crowdsale/validation/CappedCrowdsale.sol
 
 /**
- * @title TimedCrowdsale
- * @dev Crowdsale accepting contributions only within a time frame.
+ * @title CappedCrowdsale
+ * @dev Crowdsale with a limit for total contributions.
  */
-contract TimedCrowdsale is Crowdsale {
+contract CappedCrowdsale is Crowdsale {
   using SafeMath for uint256;
 
-  uint256 public openingTime;
-  uint256 public closingTime;
+  uint256 public cap;
 
   /**
-   * @dev Reverts if not in crowdsale time range. 
+   * @dev Constructor, takes maximum amount of wei accepted in the crowdsale.
+   * @param _cap Max amount of wei to be contributed
    */
-  modifier onlyWhileOpen {
-    require(now >= openingTime && now <= closingTime);
-    _;
+  function CappedCrowdsale(uint256 _cap) public {
+    require(_cap > 0);
+    cap = _cap;
   }
 
   /**
-   * @dev Constructor, takes crowdsale opening and closing times.
-   * @param _openingTime Crowdsale opening time
-   * @param _closingTime Crowdsale closing time
+   * @dev Checks whether the cap has been reached. 
+   * @return Whether the cap was reached
    */
-  function TimedCrowdsale(uint256 _openingTime, uint256 _closingTime) public {
-    require(_openingTime >= now);
-    require(_closingTime >= _openingTime);
-
-    openingTime = _openingTime;
-    closingTime = _closingTime;
+  function capReached() public view returns (bool) {
+    return weiRaised >= cap;
   }
 
   /**
-   * @dev Checks whether the period in which the crowdsale is open has already elapsed.
-   * @return Whether crowdsale period has elapsed
-   */
-  function hasClosed() public view returns (bool) {
-    return now > closingTime;
-  }
-  
-  /**
-   * @dev Extend parent behavior requiring to be within contributing period
+   * @dev Extend parent behavior requiring purchase to respect the funding cap.
    * @param _beneficiary Token purchaser
    * @param _weiAmount Amount of wei contributed
    */
-  function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal onlyWhileOpen {
+  function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
     super._preValidatePurchase(_beneficiary, _weiAmount);
-  }
-
-}
-
-// File: node_modules/zeppelin-solidity/contracts/crowdsale/distribution/PostDeliveryCrowdsale.sol
-
-/**
- * @title PostDeliveryCrowdsale
- * @dev Crowdsale that locks tokens from withdrawal until it ends.
- */
-contract PostDeliveryCrowdsale is TimedCrowdsale {
-  using SafeMath for uint256;
-
-  mapping(address => uint256) public balances;
-
-  /**
-   * @dev Overrides parent by storing balances instead of issuing tokens right away.
-   * @param _beneficiary Token purchaser
-   * @param _tokenAmount Amount of tokens purchased
-   */
-  function _processPurchase(address _beneficiary, uint256 _tokenAmount) internal {
-    balances[_beneficiary] = balances[_beneficiary].add(_tokenAmount);
-  }
-
-  /**
-   * @dev Withdraw tokens only after crowdsale ends.
-   */
-  function withdrawTokens() public {
-    require(hasClosed());
-    uint256 amount = balances[msg.sender];
-    require(amount > 0);
-    balances[msg.sender] = 0;
-    _deliverTokens(msg.sender, amount);
-  }
-}
-
-// File: node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol
-
-/**
- * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
- */
-contract Ownable {
-  address public owner;
-
-
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-
-  /**
-   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-   * account.
-   */
-  function Ownable() public {
-    owner = msg.sender;
-  }
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
-
-  /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) public onlyOwner {
-    require(newOwner != address(0));
-    OwnershipTransferred(owner, newOwner);
-    owner = newOwner;
+    require(weiRaised.add(_weiAmount) <= cap);
   }
 
 }
@@ -501,107 +415,23 @@ contract StandardToken is ERC20, BasicToken {
 
 }
 
-// File: node_modules/zeppelin-solidity/contracts/token/ERC20/MintableToken.sol
+// File: contracts/XdacToken.sol
 
-/**
- * @title Mintable token
- * @dev Simple ERC20 Token example, with mintable token creation
- * @dev Issue: * https://github.com/OpenZeppelin/zeppelin-solidity/issues/120
- * Based on code by TokenMarketNet: https://github.com/TokenMarketNet/ico/blob/master/contracts/MintableToken.sol
- */
-contract MintableToken is StandardToken, Ownable {
-  event Mint(address indexed to, uint256 amount);
-  event MintFinished();
+contract XdacToken is StandardToken {
+    string public name = "XDAC COIN";
+    string public symbol = "XDAC";
+    uint8 public decimals = 18;
 
-  bool public mintingFinished = false;
+    uint256 public constant INITIAL_SUPPLY = 1000000000 * (10 ** uint256(decimals));
 
-
-  modifier canMint() {
-    require(!mintingFinished);
-    _;
-  }
-
-  /**
-   * @dev Function to mint tokens
-   * @param _to The address that will receive the minted tokens.
-   * @param _amount The amount of tokens to mint.
-   * @return A boolean that indicates if the operation was successful.
-   */
-  function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
-    totalSupply_ = totalSupply_.add(_amount);
-    balances[_to] = balances[_to].add(_amount);
-    Mint(_to, _amount);
-    Transfer(address(0), _to, _amount);
-    return true;
-  }
-
-  /**
-   * @dev Function to stop minting new tokens.
-   * @return True if the operation was successful.
-   */
-  function finishMinting() onlyOwner canMint public returns (bool) {
-    mintingFinished = true;
-    MintFinished();
-    return true;
-  }
-}
-
-// File: node_modules/zeppelin-solidity/contracts/crowdsale/emission/MintedCrowdsale.sol
-
-/**
- * @title MintedCrowdsale
- * @dev Extension of Crowdsale contract whose tokens are minted in each purchase.
- * Token ownership should be transferred to MintedCrowdsale for minting. 
- */
-contract MintedCrowdsale is Crowdsale {
-
-  /**
-  * @dev Overrides delivery by minting tokens upon purchase.
-  * @param _beneficiary Token purchaser
-  * @param _tokenAmount Number of tokens to be minted
-  */
-  function _deliverTokens(address _beneficiary, uint256 _tokenAmount) internal {
-    require(MintableToken(token).mint(_beneficiary, _tokenAmount));
-  }
-}
-
-// File: node_modules/zeppelin-solidity/contracts/crowdsale/validation/CappedCrowdsale.sol
-
-/**
- * @title CappedCrowdsale
- * @dev Crowdsale with a limit for total contributions.
- */
-contract CappedCrowdsale is Crowdsale {
-  using SafeMath for uint256;
-
-  uint256 public cap;
-
-  /**
-   * @dev Constructor, takes maximum amount of wei accepted in the crowdsale.
-   * @param _cap Max amount of wei to be contributed
-   */
-  function CappedCrowdsale(uint256 _cap) public {
-    require(_cap > 0);
-    cap = _cap;
-  }
-
-  /**
-   * @dev Checks whether the cap has been reached. 
-   * @return Whether the cap was reached
-   */
-  function capReached() public view returns (bool) {
-    return weiRaised >= cap;
-  }
-
-  /**
-   * @dev Extend parent behavior requiring purchase to respect the funding cap.
-   * @param _beneficiary Token purchaser
-   * @param _weiAmount Amount of wei contributed
-   */
-  function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
-    super._preValidatePurchase(_beneficiary, _weiAmount);
-    require(weiRaised.add(_weiAmount) <= cap);
-  }
+    /**
+     * @dev Constructor that gives msg.sender all of existing tokens.
+     */
+    function XdacToken() public {
+        totalSupply_ = INITIAL_SUPPLY;
+        balances[msg.sender] = INITIAL_SUPPLY;
+        Transfer(0x0, msg.sender, INITIAL_SUPPLY);
+    }
 
 }
 
@@ -610,63 +440,56 @@ contract CappedCrowdsale is Crowdsale {
 /**
  * @title XdacTokenCrowdsale
  * CappedCrowdsale - sets a max boundary for raised funds
- * MintedCrowdsale - Extension of Crowdsale contract whose tokens are minted in each purchase.
- * _goal - 1400 ether soft cap
+  * _goal - 1400 ether soft cap
  * _cap - 35400 ether hard cap
- * _openingTime - March 15, 2018
- * _closingTime - August 31, 2018
  */
 contract XdacTokenCrowdsale is CappedCrowdsale {
 
     using SafeMath for uint256;
     uint256[] roundGoals;
     uint256[] roundRates;
+    uint256 minContribution;
     mapping(address => uint256) public balances;
+    event TokenWithdraw(address indexed purchaser, uint256 amount);
+    event TokenCalculate(uint curRound, uint256 weiRaised, uint256 weiAmount, uint256 calculatedTokenAmount);
 
     function XdacTokenCrowdsale(
         address _wallet,
-        StandardToken _token,
         uint256[] _roundGoals,
-        uint256[] _roundRates
+        uint256[] _roundRates,
+        uint256 _minContribution
     ) public
-    Crowdsale(_roundRates[0], _wallet, _token)
+    Crowdsale(_roundRates[0], _wallet, new XdacToken())
     CappedCrowdsale(_roundGoals[4])
     {
         require(_roundRates.length == 5);
         require(_roundGoals.length == 5);
+        require(_roundGoals.length == 5);
         roundGoals = _roundGoals;
         roundRates = _roundRates;
-    }
-
-    /**
-     * Minimum Contribution amount per Contributor is 0.1 ETH.
-     *
-     * @param _beneficiary Address performing the token purchase
-     * @param _weiAmount Value in wei involved in the purchase
-     */
-    function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
-        require(_weiAmount > 0.1 ether);
-        super._preValidatePurchase(_beneficiary, _weiAmount);
+        minContribution = _minContribution;
     }
 
 
     function getCurrentRate() public view returns (uint256) {
-        if(weiRaised <= roundGoals[0])
-            return roundRates[0];
-        if(weiRaised <= roundGoals[1])
-            return roundRates[1];
-        if(weiRaised <= roundGoals[2])
-            return roundRates[2];
-        if(weiRaised <= roundGoals[3])
-            return roundRates[3];
-        if(weiRaised <= roundGoals[4])
-            return roundRates[4];
-        else
-            return roundRates[4];
+        return roundRates[getCurrentRound()];
     }
 
-    function _processPurchase(address _beneficiary, uint256 _tokenAmount) internal {
-        balances[_beneficiary] = balances[_beneficiary].add(_tokenAmount);
+    function getCurrentRound() public view returns (uint) {
+        for (uint i = 0; i < 5; i++) {
+            if(weiRaised < roundGoals[i]) {
+                return i;
+            }
+        }
+
+    }
+
+    function getWeiRaised() public view returns (uint256) {
+        return weiRaised;
+    }
+
+    function getToken() public view returns (ERC20) {
+        return token;
     }
 
     /**
@@ -677,7 +500,60 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
         uint256 amount = balances[msg.sender];
         require(amount > 0);
         balances[msg.sender] = 0;
+        TokenWithdraw(msg.sender, amount);
         _deliverTokens(msg.sender, amount);
     }
 
+    /**
+    * Gets the balance of the specified address.
+    * @param _owner The address to query the the balance of.
+    * @return An uint256 representing the amount owned by the passed address.
+    */
+    function balanceOf(address _owner) public view returns (uint256 balance) {
+        return balances[_owner];
+    }
+
+    /**
+     * Minimum Contribution amount per Contributor is 0.1 ETH.
+     *
+     * @param _beneficiary Address performing the token purchase
+     * @param _weiAmount Value in wei involved in the purchase
+     */
+    function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
+        require(_weiAmount > minContribution);
+        super._preValidatePurchase(_beneficiary, _weiAmount);
+    }
+
+    /**
+     * @dev the way in which ether is converted to tokens.
+     * @param _weiAmount Value in wei to be converted into tokens
+     * @return Number of tokens that can be purchased with the specified _weiAmount
+     */
+    function _getTokenAmount(uint256 _weiAmount) internal view returns (uint256) {
+        uint curRound = getCurrentRound();
+        uint256 calculatedTokenAmount = 0;
+        uint256 roundWei = 0;
+        uint256 weiRaisedIntermediate = weiRaised;
+        uint256 weiAmount = _weiAmount;
+
+        for (curRound; curRound < 5; curRound++) {
+            if(weiRaisedIntermediate.add(weiAmount) > roundGoals[curRound]) {
+                roundWei = roundGoals[curRound].sub(weiRaisedIntermediate);
+                weiRaisedIntermediate = weiRaisedIntermediate.add(roundWei);
+                weiAmount = weiAmount.sub(roundWei);
+                calculatedTokenAmount = calculatedTokenAmount.add(roundWei.mul(roundRates[curRound]));
+            }
+            else {
+                calculatedTokenAmount = calculatedTokenAmount.add(weiAmount.mul(roundRates[curRound]));
+                break;
+            }
+            TokenCalculate(curRound, weiRaisedIntermediate, weiAmount, calculatedTokenAmount);
+        }
+
+        return calculatedTokenAmount;
+    }
+
+    function _processPurchase(address _beneficiary, uint256 _tokenAmount) internal {
+        balances[_beneficiary] = balances[_beneficiary].add(_tokenAmount);
+    }
 }

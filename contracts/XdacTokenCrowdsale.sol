@@ -1,17 +1,13 @@
 pragma solidity ^0.4.13;
 
 import "../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
-import "../node_modules/zeppelin-solidity/contracts/crowdsale/distribution/PostDeliveryCrowdsale.sol";
 import "../node_modules/zeppelin-solidity/contracts/crowdsale/validation/CappedCrowdsale.sol";
 import "./XdacToken.sol";
 /**
  * @title XdacTokenCrowdsale
  * CappedCrowdsale - sets a max boundary for raised funds
- * MintedCrowdsale - Extension of Crowdsale contract whose tokens are minted in each purchase.
- * _goal - 1400 ether soft cap
+  * _goal - 1400 ether soft cap
  * _cap - 35400 ether hard cap
- * _openingTime - March 21, 2018
- * _closingTime - August 31, 2018
  */
 contract XdacTokenCrowdsale is CappedCrowdsale {
 
@@ -21,6 +17,7 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
     uint256 minContribution;
     mapping(address => uint256) public balances;
     event TokenWithdraw(address indexed purchaser, uint256 amount);
+    event TokenCalculate(uint curRound, uint256 weiRaised, uint256 weiAmount, uint256 calculatedTokenAmount);
 
     function XdacTokenCrowdsale(
         address _wallet,
@@ -41,18 +38,16 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
 
 
     function getCurrentRate() public view returns (uint256) {
-        if(weiRaised < roundGoals[0])
-            return roundRates[0];
-        else if(weiRaised < roundGoals[1])
-            return roundRates[1];
-        else if(weiRaised < roundGoals[2])
-            return roundRates[2];
-        else if(weiRaised < roundGoals[3])
-            return roundRates[3];
-        else if(weiRaised < roundGoals[4])
-            return roundRates[4];
-        else
-            return roundRates[4];
+        return roundRates[getCurrentRound()];
+    }
+
+    function getCurrentRound() public view returns (uint) {
+        for (uint i = 0; i < 5; i++) {
+            if(weiRaised < roundGoals[i]) {
+                return i;
+            }
+        }
+
     }
 
     function getWeiRaised() public view returns (uint256) {
@@ -101,7 +96,27 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
     function _getTokenAmount(uint256 _weiAmount) internal view returns (uint256) {
-        return _weiAmount.mul(getCurrentRate());
+        uint curRound = getCurrentRound();
+        uint256 calculatedTokenAmount = 0;
+        uint256 roundWei = 0;
+        uint256 weiRaisedIntermediate = weiRaised;
+        uint256 weiAmount = _weiAmount;
+
+        for (curRound; curRound < 5; curRound++) {
+            if(weiRaisedIntermediate.add(weiAmount) > roundGoals[curRound]) {
+                roundWei = roundGoals[curRound].sub(weiRaisedIntermediate);
+                weiRaisedIntermediate = weiRaisedIntermediate.add(roundWei);
+                weiAmount = weiAmount.sub(roundWei);
+                calculatedTokenAmount = calculatedTokenAmount.add(roundWei.mul(roundRates[curRound]));
+            }
+            else {
+                calculatedTokenAmount = calculatedTokenAmount.add(weiAmount.mul(roundRates[curRound]));
+                break;
+            }
+            TokenCalculate(curRound, weiRaisedIntermediate, weiAmount, calculatedTokenAmount);
+        }
+
+        return calculatedTokenAmount;
     }
 
     function _processPurchase(address _beneficiary, uint256 _tokenAmount) internal {

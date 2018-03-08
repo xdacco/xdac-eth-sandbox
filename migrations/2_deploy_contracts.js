@@ -7,29 +7,45 @@ function ether(n) {
 
 module.exports = function(deployer, network, accounts) {
 
+  // const goals = [
+  //   ether(1400),
+  //   ether(9900),
+  //   ether(18400),
+  //   ether(26900),
+  //   ether(35400)
+  // ]
+  // const minContribution = 0.1
+  //
+  // const rates = [
+  //   new BigNumber(12500),
+  //   new BigNumber(12000),
+  //   new BigNumber(11500),
+  //   new BigNumber(11000),
+  //   new BigNumber(10500),
+  // ]
+
   const goals = [
-    ether(1400),
-    ether(9900),
-    ether(18400),
-    ether(26900),
-    ether(35400)
+    ether(0.05),
+    ether(0.10),
+    ether(0.15),
+    ether(0.20),
+    ether(0.25)
   ]
-  const minContribution = 0.1
+
   const rates = [
     new BigNumber(12500),
     new BigNumber(12000),
     new BigNumber(11500),
     new BigNumber(11000),
-    new BigNumber(10500),
+    new BigNumber(10500)
   ]
+
+  const minContribution = 0.001
+
   const wallet = accounts[0]
 
   deployer.deploy(
-    XdacTokenCrowdsale,
-    wallet,
-    goals,
-    rates,
-    ether(minContribution)
+    XdacTokenCrowdsale, wallet, goals, rates, ether(minContribution)
   );
 
 };
