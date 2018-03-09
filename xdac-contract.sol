@@ -231,42 +231,44 @@ contract Crowdsale {
   }
 }
 
-// File: node_modules/zeppelin-solidity/contracts/crowdsale/validation/CappedCrowdsale.sol
+// File: node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol
 
 /**
- * @title CappedCrowdsale
- * @dev Crowdsale with a limit for total contributions.
+ * @title Ownable
+ * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * functions, this simplifies the implementation of "user permissions".
  */
-contract CappedCrowdsale is Crowdsale {
-  using SafeMath for uint256;
+contract Ownable {
+  address public owner;
 
-  uint256 public cap;
+
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
 
   /**
-   * @dev Constructor, takes maximum amount of wei accepted in the crowdsale.
-   * @param _cap Max amount of wei to be contributed
+   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
+   * account.
    */
-  function CappedCrowdsale(uint256 _cap) public {
-    require(_cap > 0);
-    cap = _cap;
+  function Ownable() public {
+    owner = msg.sender;
   }
 
   /**
-   * @dev Checks whether the cap has been reached. 
-   * @return Whether the cap was reached
+   * @dev Throws if called by any account other than the owner.
    */
-  function capReached() public view returns (bool) {
-    return weiRaised >= cap;
+  modifier onlyOwner() {
+    require(msg.sender == owner);
+    _;
   }
 
   /**
-   * @dev Extend parent behavior requiring purchase to respect the funding cap.
-   * @param _beneficiary Token purchaser
-   * @param _weiAmount Amount of wei contributed
+   * @dev Allows the current owner to transfer control of the contract to a newOwner.
+   * @param newOwner The address to transfer ownership to.
    */
-  function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
-    super._preValidatePurchase(_beneficiary, _weiAmount);
-    require(weiRaised.add(_weiAmount) <= cap);
+  function transferOwnership(address newOwner) public onlyOwner {
+    require(newOwner != address(0));
+    OwnershipTransferred(owner, newOwner);
+    owner = newOwner;
   }
 
 }
@@ -443,15 +445,29 @@ contract XdacToken is StandardToken {
   * _goal - 1400 ether soft cap
  * _cap - 35400 ether hard cap
  */
-contract XdacTokenCrowdsale is CappedCrowdsale {
+contract XdacTokenCrowdsale is Crowdsale, Ownable {
 
     using SafeMath for uint256;
     uint256[] roundGoals;
     uint256[] roundRates;
     uint256 minContribution;
-    mapping(address => uint256) public balances;
+
+    mapping(address => Contributor) public contributors;
+    //Array of the addresses who participated
+    address[] public addresses;
+    // Amount of wei raised
+    uint256 public weiDelivered;
+
     event TokenWithdraw(address indexed purchaser, uint256 amount);
-    event TokenCalculate(uint curRound, uint256 weiRaised, uint256 weiAmount, uint256 calculatedTokenAmount);
+    event TokenCalculate(uint curRound, uint256 weiDelivered, uint256 weiAmount, uint256 calculatedTokenAmount);
+    event Test(bool x);
+
+    struct Contributor {
+        uint256 eth;
+        bool whitelisted;
+        bool created;
+    }
+
 
     function XdacTokenCrowdsale(
         address _wallet,
@@ -460,16 +476,13 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
         uint256 _minContribution
     ) public
     Crowdsale(_roundRates[0], _wallet, new XdacToken())
-    CappedCrowdsale(_roundGoals[4])
     {
         require(_roundRates.length == 5);
-        require(_roundGoals.length == 5);
         require(_roundGoals.length == 5);
         roundGoals = _roundGoals;
         roundRates = _roundRates;
         minContribution = _minContribution;
     }
-
 
     function getCurrentRate() public view returns (uint256) {
         return roundRates[getCurrentRound()];
@@ -477,52 +490,53 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
 
     function getCurrentRound() public view returns (uint) {
         for (uint i = 0; i < 5; i++) {
-            if(weiRaised < roundGoals[i]) {
+            if (weiDelivered < roundGoals[i]) {
                 return i;
             }
         }
-
-    }
-
-    function getWeiRaised() public view returns (uint256) {
-        return weiRaised;
     }
 
     function getToken() public view returns (ERC20) {
         return token;
     }
 
+    function getContributorValues(address _contributor) view returns (uint256, bool) {
+        Contributor memory contributor = contributors[_contributor];
+        bool is_whitelisted = contributor.whitelisted;
+        return (contributor.eth, is_whitelisted);
+    }
+
+    function whitelistAddresses(address[] _contributors) onlyOwner {
+        for (uint256 i = 0; i < _contributors.length; i++) {
+            _whitelistAddress(_contributors[i]);
+        }
+    }
+
+    function whitelistAddress(address _contributor) onlyOwner {
+        _whitelistAddress(_contributor);
+    }
+
     /**
-     * @dev Withdraw tokens only after crowdsale ends.
+     * @dev Withdraw tokens.
      */
     function withdrawTokens() public {
-        require(capReached());
-        uint256 amount = balances[msg.sender];
-        require(amount > 0);
-        balances[msg.sender] = 0;
-        TokenWithdraw(msg.sender, amount);
-        _deliverTokens(msg.sender, amount);
+        _deliverTokens(msg.sender);
     }
 
     /**
-    * Gets the balance of the specified address.
-    * @param _owner The address to query the the balance of.
-    * @return An uint256 representing the amount owned by the passed address.
-    */
-    function balanceOf(address _owner) public view returns (uint256 balance) {
-        return balances[_owner];
-    }
-
-    /**
-     * Minimum Contribution amount per Contributor is 0.1 ETH.
-     *
-     * @param _beneficiary Address performing the token purchase
-     * @param _weiAmount Value in wei involved in the purchase
+     * @dev Refound tokens. For contributors
      */
-    function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
-        require(_weiAmount > minContribution);
-        super._preValidatePurchase(_beneficiary, _weiAmount);
+    function refundTokens() public {
+        _refundTokens(msg.sender);
     }
+
+    /**
+     * @dev Refound tokens. For owner
+     */
+    function refundTokensForAddress(address _contributor) public onlyOwner {
+        _refundTokens(_contributor);
+    }
+
 
     /**
      * @dev the way in which ether is converted to tokens.
@@ -533,11 +547,11 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
         uint curRound = getCurrentRound();
         uint256 calculatedTokenAmount = 0;
         uint256 roundWei = 0;
-        uint256 weiRaisedIntermediate = weiRaised;
+        uint256 weiRaisedIntermediate = weiDelivered;
         uint256 weiAmount = _weiAmount;
 
         for (curRound; curRound < 5; curRound++) {
-            if(weiRaisedIntermediate.add(weiAmount) > roundGoals[curRound]) {
+            if (weiRaisedIntermediate.add(weiAmount) > roundGoals[curRound]) {
                 roundWei = roundGoals[curRound].sub(weiRaisedIntermediate);
                 weiRaisedIntermediate = weiRaisedIntermediate.add(roundWei);
                 weiAmount = weiAmount.sub(roundWei);
@@ -553,7 +567,65 @@ contract XdacTokenCrowdsale is CappedCrowdsale {
         return calculatedTokenAmount;
     }
 
-    function _processPurchase(address _beneficiary, uint256 _tokenAmount) internal {
-        balances[_beneficiary] = balances[_beneficiary].add(_tokenAmount);
+
+    /**
+     * Minimum Contribution amount per Contributor is 0.1 ETH.
+     *
+     * @param _contributor Address performing the token purchase
+     * @param _weiAmount Value in wei involved in the purchase
+     */
+    function _preValidatePurchase(address _contributor, uint256 _weiAmount) internal {
+        require(_weiAmount > minContribution);
+        require(weiDelivered.add(_weiAmount) <= roundGoals[4]);
+        super._preValidatePurchase(_contributor, _weiAmount);
+    }
+
+
+    function _forwardFunds() internal {
+        Contributor memory contributor = contributors[msg.sender];
+        if (contributor.whitelisted) {
+            _deliverTokens(msg.sender);
+        }
+    }
+
+    function _processPurchase(address _contributor, uint256 _tokenAmount) internal {
+        Contributor storage contributor = contributors[_contributor];
+        contributor.eth = contributor.eth.add(msg.value);
+    }
+
+    function _deliverTokens(address _contributor) internal {
+        Contributor storage contributor = contributors[_contributor];
+        uint256 amountEth = contributor.eth;
+        uint256 amountToken = _getTokenAmount(amountEth);
+        require(amountToken > 0);
+        require(amountEth > 0);
+        require(contributor.whitelisted);
+        contributor.eth = 0;
+        weiDelivered = weiDelivered.add(amountEth);
+        wallet.transfer(amountEth);
+        super._deliverTokens(_contributor, amountToken);
+    }
+
+    function _refundTokens(address _contributor) internal {
+        Contributor storage contributor = contributors[_contributor];
+        uint256 ethAmount = contributor.eth;
+        require(ethAmount > 0);
+        contributor.eth = 0;
+        _contributor.transfer(ethAmount);
+        weiRaised = weiRaised.sub(ethAmount);
+        weiDelivered = weiDelivered.sub(ethAmount);
+    }
+
+    function _whitelistAddress(address _contributor) internal {
+        Contributor storage contributor = contributors[_contributor];
+        contributor.whitelisted = true;
+        if (contributor.created == false) {
+            contributor.created = true;
+            addresses.push(_contributor);
+        }
+        //Auto deliver tokens
+        if (contributor.eth > 0) {
+            _deliverTokens(_contributor);
+        }
     }
 }
