@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>XDAC - Frontend</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./app.js"></script>
+</head>
+<body>
+
+  <a href="user.html">user area</a>
+  <br><h1>XDAC Crowdsale Admin </h1>
+  <br><br><label for="whitelist">Contract:</label><input id="address" value="0x9062135aae46851ceb169c7cf86a714519996d32"></input>
+  <br><br><label for="account">Account:</label><input id="account" readonly></input>
+  <br><h1>Whitelist Address</h1>
+  <br><label for="whitelist">Beneficiary:</label><input type="text" id="whitelist" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae">
+  <button id="send2" onclick="App.whitelistAddress()">send</button>
+
+  <br><br>
+
+  <br><h1>Refund</h1>
+  <br><label for="refund">Beneficiary:</label><input type="text" id="refund" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae">
+  <button id="send4" onclick="App.refundTokensForAddress()">send</button>
+
+
+  <br><br><button id="send3" onclick="App.getAddresses()">get addresses</button>
+  <br><textarea id="addresses" rows="20" cols="70"></textarea>
+  <br><br>
+
+  <span id="status"></span>
+  <br>
+  <span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
+</body>
+</html>

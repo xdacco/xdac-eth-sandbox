@@ -3,7 +3,9 @@
   "version": "0.0.2",
   "description": "xdac-smart-contracts",
   "scripts": {
-    "lint": "eslint ./"
+    "lint": "eslint ./",
+    "build": "webpack",
+    "dev": "webpack-dev-server"
   },
   "author": "xdac.co",
   "license": "MIT",

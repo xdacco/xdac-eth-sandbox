@@ -25,11 +25,11 @@ module.exports = function(deployer, network, accounts) {
   // ]
 
   const goals = [
-    ether(0.05),
-    ether(0.10),
-    ether(0.15),
-    ether(0.20),
-    ether(0.25)
+    ether(0.5),
+    ether(1),
+    ether(1.5),
+    ether(2),
+    ether(2.5)
   ]
 
   const rates = [

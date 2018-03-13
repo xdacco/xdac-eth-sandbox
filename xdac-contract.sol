@@ -506,14 +506,18 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         return (contributor.eth, is_whitelisted);
     }
 
-    function whitelistAddresses(address[] _contributors) onlyOwner {
+    function whitelistAddresses(address[] _contributors) public onlyOwner {
         for (uint256 i = 0; i < _contributors.length; i++) {
             _whitelistAddress(_contributors[i]);
         }
     }
 
-    function whitelistAddress(address _contributor) onlyOwner {
+    function whitelistAddress(address _contributor) public onlyOwner {
         _whitelistAddress(_contributor);
+    }
+
+    function getAddresses() public view returns (address[] )  {
+        return addresses;
     }
 
     /**
@@ -591,6 +595,10 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
     function _processPurchase(address _contributor, uint256 _tokenAmount) internal {
         Contributor storage contributor = contributors[_contributor];
         contributor.eth = contributor.eth.add(msg.value);
+        if (contributor.created == false) {
+            contributor.created = true;
+            addresses.push(_contributor);
+        }
     }
 
     function _deliverTokens(address _contributor) internal {
