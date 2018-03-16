@@ -106,6 +106,12 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         _refundTokens(_contributor);
     }
 
+    /**
+     * @dev Returns tokens according to rate
+     */
+    function getTokenAmount(uint256 _weiAmount) public view returns (uint256) {
+        return _getTokenAmount(_weiAmount);
+    }
 
     /**
      * @dev the way in which ether is converted to tokens.
@@ -136,6 +142,34 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         return calculatedTokenAmount;
     }
 
+
+    /**
+     * @dev the way in which tokens is converted to ether.
+     * @param _tokenAmount Value in token to be converted into wei
+     * @return Number of ether that required to purchase with the specified _tokenAmount
+     */
+    function getEthAmount(uint256 _tokenAmount) public view returns (uint256) {
+        uint curRound = getCurrentRound();
+        uint256 calculatedWeiAmount = 0;
+        uint256 roundWei = 0;
+        uint256 weiRaisedIntermediate = weiDelivered;
+        uint256 tokenAmount = _tokenAmount;
+
+        for (curRound; curRound < 5; curRound++) {
+            if(weiRaisedIntermediate.add(tokenAmount.div(roundRates[curRound])) > roundGoals[curRound]) {
+                roundWei = roundGoals[curRound].sub(weiRaisedIntermediate);
+                weiRaisedIntermediate = weiRaisedIntermediate.add(roundWei);
+                tokenAmount = tokenAmount.sub(roundWei.div(roundRates[curRound]));
+                calculatedWeiAmount = calculatedWeiAmount.add(tokenAmount.div(roundRates[curRound]));
+            }
+            else {
+                calculatedWeiAmount = calculatedWeiAmount.add(tokenAmount.div(roundRates[curRound]));
+                break;
+            }
+        }
+
+        return calculatedWeiAmount;
+    }
 
     /**
      * Minimum Contribution amount per Contributor is 0.1 ETH.
@@ -184,9 +218,8 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         uint256 ethAmount = contributor.eth;
         require(ethAmount > 0);
         contributor.eth = 0;
-        _contributor.transfer(ethAmount);
         weiRaised = weiRaised.sub(ethAmount);
-        weiDelivered = weiDelivered.sub(ethAmount);
+        _contributor.transfer(ethAmount);
     }
 
     function _whitelistAddress(address _contributor) internal {
