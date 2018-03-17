@@ -23,9 +23,7 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
     // Amount of wei raised
     uint256 public weiDelivered;
 
-    event TokenWithdraw(address indexed purchaser, uint256 amount);
-    event TokenCalculate(uint curRound, uint256 weiDelivered, uint256 weiAmount, uint256 calculatedTokenAmount);
-    event Test(bool x);
+    event TokenRefund(address indexed purchaser, uint256 amount);
 
     struct Contributor {
         uint256 eth;
@@ -75,6 +73,11 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         for (uint256 i = 0; i < _contributors.length; i++) {
             _whitelistAddress(_contributors[i]);
         }
+    }
+    function transferTokenOwnership(address _newOwner) public onlyOwner returns(bool success) {
+        XdacToken _token = XdacToken(token);
+        _token.transferOwnership(_newOwner);
+        return true;
     }
 
     function whitelistAddress(address _contributor) public onlyOwner {
@@ -136,9 +139,7 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
                 calculatedTokenAmount = calculatedTokenAmount.add(weiAmount.mul(roundRates[curRound]));
                 break;
             }
-            TokenCalculate(curRound, weiRaisedIntermediate, weiAmount, calculatedTokenAmount);
         }
-
         return calculatedTokenAmount;
     }
 
@@ -219,6 +220,7 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         require(ethAmount > 0);
         contributor.eth = 0;
         weiRaised = weiRaised.sub(ethAmount);
+        TokenRefund(_contributor, ethAmount);
         _contributor.transfer(ethAmount);
     }
 
