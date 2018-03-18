@@ -48,189 +48,6 @@ library SafeMath {
   }
 }
 
-// File: node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20Basic.sol
-
-/**
- * @title ERC20Basic
- * @dev Simpler version of ERC20 interface
- * @dev see https://github.com/ethereum/EIPs/issues/179
- */
-contract ERC20Basic {
-  function totalSupply() public view returns (uint256);
-  function balanceOf(address who) public view returns (uint256);
-  function transfer(address to, uint256 value) public returns (bool);
-  event Transfer(address indexed from, address indexed to, uint256 value);
-}
-
-// File: node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol
-
-/**
- * @title ERC20 interface
- * @dev see https://github.com/ethereum/EIPs/issues/20
- */
-contract ERC20 is ERC20Basic {
-  function allowance(address owner, address spender) public view returns (uint256);
-  function transferFrom(address from, address to, uint256 value) public returns (bool);
-  function approve(address spender, uint256 value) public returns (bool);
-  event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-
-// File: node_modules/zeppelin-solidity/contracts/crowdsale/Crowdsale.sol
-
-/**
- * @title Crowdsale
- * @dev Crowdsale is a base contract for managing a token crowdsale,
- * allowing investors to purchase tokens with ether. This contract implements
- * such functionality in its most fundamental form and can be extended to provide additional
- * functionality and/or custom behavior.
- * The external interface represents the basic interface for purchasing tokens, and conform
- * the base architecture for crowdsales. They are *not* intended to be modified / overriden.
- * The internal interface conforms the extensible and modifiable surface of crowdsales. Override 
- * the methods to add functionality. Consider using 'super' where appropiate to concatenate
- * behavior.
- */
-
-contract Crowdsale {
-  using SafeMath for uint256;
-
-  // The token being sold
-  ERC20 public token;
-
-  // Address where funds are collected
-  address public wallet;
-
-  // How many token units a buyer gets per wei
-  uint256 public rate;
-
-  // Amount of wei raised
-  uint256 public weiRaised;
-
-  /**
-   * Event for token purchase logging
-   * @param purchaser who paid for the tokens
-   * @param beneficiary who got the tokens
-   * @param value weis paid for purchase
-   * @param amount amount of tokens purchased
-   */
-  event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
-
-  /**
-   * @param _rate Number of token units a buyer gets per wei
-   * @param _wallet Address where collected funds will be forwarded to
-   * @param _token Address of the token being sold
-   */
-  function Crowdsale(uint256 _rate, address _wallet, ERC20 _token) public {
-    require(_rate > 0);
-    require(_wallet != address(0));
-    require(_token != address(0));
-
-    rate = _rate;
-    wallet = _wallet;
-    token = _token;
-  }
-
-  // -----------------------------------------
-  // Crowdsale external interface
-  // -----------------------------------------
-
-  /**
-   * @dev fallback function ***DO NOT OVERRIDE***
-   */
-  function () external payable {
-    buyTokens(msg.sender);
-  }
-
-  /**
-   * @dev low level token purchase ***DO NOT OVERRIDE***
-   * @param _beneficiary Address performing the token purchase
-   */
-  function buyTokens(address _beneficiary) public payable {
-
-    uint256 weiAmount = msg.value;
-    _preValidatePurchase(_beneficiary, weiAmount);
-
-    // calculate token amount to be created
-    uint256 tokens = _getTokenAmount(weiAmount);
-
-    // update state
-    weiRaised = weiRaised.add(weiAmount);
-
-    _processPurchase(_beneficiary, tokens);
-    TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
-
-    _updatePurchasingState(_beneficiary, weiAmount);
-
-    _forwardFunds();
-    _postValidatePurchase(_beneficiary, weiAmount);
-  }
-
-  // -----------------------------------------
-  // Internal interface (extensible)
-  // -----------------------------------------
-
-  /**
-   * @dev Validation of an incoming purchase. Use require statemens to revert state when conditions are not met. Use super to concatenate validations.
-   * @param _beneficiary Address performing the token purchase
-   * @param _weiAmount Value in wei involved in the purchase
-   */
-  function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
-    require(_beneficiary != address(0));
-    require(_weiAmount != 0);
-  }
-
-  /**
-   * @dev Validation of an executed purchase. Observe state and use revert statements to undo rollback when valid conditions are not met.
-   * @param _beneficiary Address performing the token purchase
-   * @param _weiAmount Value in wei involved in the purchase
-   */
-  function _postValidatePurchase(address _beneficiary, uint256 _weiAmount) internal {
-    // optional override
-  }
-
-  /**
-   * @dev Source of tokens. Override this method to modify the way in which the crowdsale ultimately gets and sends its tokens.
-   * @param _beneficiary Address performing the token purchase
-   * @param _tokenAmount Number of tokens to be emitted
-   */
-  function _deliverTokens(address _beneficiary, uint256 _tokenAmount) internal {
-    token.transfer(_beneficiary, _tokenAmount);
-  }
-
-  /**
-   * @dev Executed when a purchase has been validated and is ready to be executed. Not necessarily emits/sends tokens.
-   * @param _beneficiary Address receiving the tokens
-   * @param _tokenAmount Number of tokens to be purchased
-   */
-  function _processPurchase(address _beneficiary, uint256 _tokenAmount) internal {
-    _deliverTokens(_beneficiary, _tokenAmount);
-  }
-
-  /**
-   * @dev Override for extensions that require an internal state to check for validity (current user contributions, etc.)
-   * @param _beneficiary Address receiving the tokens
-   * @param _weiAmount Value in wei involved in the purchase
-   */
-  function _updatePurchasingState(address _beneficiary, uint256 _weiAmount) internal {
-    // optional override
-  }
-
-  /**
-   * @dev Override to extend the way in which ether is converted to tokens.
-   * @param _weiAmount Value in wei to be converted into tokens
-   * @return Number of tokens that can be purchased with the specified _weiAmount
-   */
-  function _getTokenAmount(uint256 _weiAmount) internal view returns (uint256) {
-    return _weiAmount.mul(rate);
-  }
-
-  /**
-   * @dev Determines how ETH is stored/forwarded on purchases.
-   */
-  function _forwardFunds() internal {
-    wallet.transfer(msg.value);
-  }
-}
-
 // File: node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol
 
 /**
@@ -271,6 +88,20 @@ contract Ownable {
     owner = newOwner;
   }
 
+}
+
+// File: node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20Basic.sol
+
+/**
+ * @title ERC20Basic
+ * @dev Simpler version of ERC20 interface
+ * @dev see https://github.com/ethereum/EIPs/issues/179
+ */
+contract ERC20Basic {
+  function totalSupply() public view returns (uint256);
+  function balanceOf(address who) public view returns (uint256);
+  function transfer(address to, uint256 value) public returns (bool);
+  event Transfer(address indexed from, address indexed to, uint256 value);
 }
 
 // File: node_modules/zeppelin-solidity/contracts/token/ERC20/BasicToken.sol
@@ -318,6 +149,19 @@ contract BasicToken is ERC20Basic {
     return balances[_owner];
   }
 
+}
+
+// File: node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol
+
+/**
+ * @title ERC20 interface
+ * @dev see https://github.com/ethereum/EIPs/issues/20
+ */
+contract ERC20 is ERC20Basic {
+  function allowance(address owner, address spender) public view returns (uint256);
+  function transferFrom(address from, address to, uint256 value) public returns (bool);
+  function approve(address spender, uint256 value) public returns (bool);
+  event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
 // File: node_modules/zeppelin-solidity/contracts/token/ERC20/StandardToken.sol
@@ -424,7 +268,7 @@ contract XdacToken is StandardToken, Ownable {
     string public symbol = "XDAC";
     uint8 public decimals = 18;
 
-    uint256 public constant INITIAL_SUPPLY = 1000000000 * (10 ** uint256(decimals));
+    uint256 public constant INITIAL_SUPPLY = 9000000000 ether;
 
     /**
      * @dev Constructor that gives msg.sender all of existing tokens.
@@ -435,32 +279,39 @@ contract XdacToken is StandardToken, Ownable {
         Transfer(0x0, msg.sender, INITIAL_SUPPLY);
     }
 
+    function currentOwner() public view returns(address) {
+        return owner;
+    }
 }
 
 // File: contracts/XdacTokenCrowdsale.sol
 
 /**
  * @title XdacTokenCrowdsale
- * CappedCrowdsale - sets a max boundary for raised funds
-  * _goal - 1400 ether soft cap
- * _cap - 35400 ether hard cap
  */
-contract XdacTokenCrowdsale is Crowdsale, Ownable {
+contract XdacTokenCrowdsale is Ownable {
 
     using SafeMath for uint256;
     uint256[] roundGoals;
     uint256[] roundRates;
     uint256 minContribution;
 
+    // The token being sold
+    ERC20 public token;
+
+    // Address where funds are collected
+    address public wallet;
+
     mapping(address => Contributor) public contributors;
     //Array of the addresses who participated
-    address[] public addresses;
+    address[] addresses;
+
     // Amount of wei raised
     uint256 public weiDelivered;
 
-    event TokenWithdraw(address indexed purchaser, uint256 amount);
-    event TokenCalculate(uint curRound, uint256 weiDelivered, uint256 weiAmount, uint256 calculatedTokenAmount);
-    event Test(bool x);
+
+    event TokenRefund(address indexed purchaser, uint256 amount);
+    event TokenPurchase(address indexed purchaser, address indexed contributor, uint256 value, uint256 amount);
 
     struct Contributor {
         uint256 eth;
@@ -474,78 +325,52 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         uint256[] _roundGoals,
         uint256[] _roundRates,
         uint256 _minContribution
-    ) public
-    Crowdsale(_roundRates[0], _wallet, new XdacToken())
-    {
+    ) public {
+        require(_wallet != address(0));
         require(_roundRates.length == 5);
         require(_roundGoals.length == 5);
         roundGoals = _roundGoals;
         roundRates = _roundRates;
         minContribution = _minContribution;
+        token = new XdacToken();
+        wallet = _wallet;
     }
 
-    function getCurrentRate() public view returns (uint256) {
-        return roundRates[getCurrentRound()];
+    // -----------------------------------------
+    // Crowdsale external interface
+    // -----------------------------------------
+
+    /**
+     * @dev fallback function
+     */
+    function () external payable {
+        buyTokens(msg.sender);
     }
 
-    function getCurrentRound() public view returns (uint) {
+    /**
+     * @dev token purchase
+     * @param _contributor Address performing the token purchase
+     */
+    function buyTokens(address _contributor) public payable {
+        require(_contributor != address(0));
+        require(msg.value != 0);
+        require(msg.value > minContribution);
+        require(weiDelivered.add(msg.value) <= roundGoals[4]);
+
+        // calculate token amount to be created
+        uint256 tokens = _getTokenAmount(msg.value);
+
+        TokenPurchase(msg.sender, _contributor, msg.value, tokens);
+        _forwardFunds();
+    }
+
+    /**********internal***********/
+    function _getCurrentRound() internal view returns (uint) {
         for (uint i = 0; i < 5; i++) {
             if (weiDelivered < roundGoals[i]) {
                 return i;
             }
         }
-    }
-
-    function getToken() public view returns (ERC20) {
-        return token;
-    }
-
-    function getContributorValues(address _contributor) view returns (uint256, bool) {
-        Contributor memory contributor = contributors[_contributor];
-        bool is_whitelisted = contributor.whitelisted;
-        return (contributor.eth, is_whitelisted);
-    }
-
-    function whitelistAddresses(address[] _contributors) public onlyOwner {
-        for (uint256 i = 0; i < _contributors.length; i++) {
-            _whitelistAddress(_contributors[i]);
-        }
-    }
-
-    function whitelistAddress(address _contributor) public onlyOwner {
-        _whitelistAddress(_contributor);
-    }
-
-    function getAddresses() public view returns (address[] )  {
-        return addresses;
-    }
-
-    /**
-     * @dev Withdraw tokens.
-     */
-    function withdrawTokens() public {
-        _deliverTokens(msg.sender);
-    }
-
-    /**
-     * @dev Refound tokens. For contributors
-     */
-    function refundTokens() public {
-        _refundTokens(msg.sender);
-    }
-
-    /**
-     * @dev Refound tokens. For owner
-     */
-    function refundTokensForAddress(address _contributor) public onlyOwner {
-        _refundTokens(_contributor);
-    }
-
-    /**
-     * @dev Returns tokens according to rate
-     */
-    function getTokenAmount(uint256 _weiAmount) public view returns (uint256) {
-        return _getTokenAmount(_weiAmount);
     }
 
     /**
@@ -554,7 +379,7 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
     function _getTokenAmount(uint256 _weiAmount) internal view returns (uint256) {
-        uint curRound = getCurrentRound();
+        uint curRound = _getCurrentRound();
         uint256 calculatedTokenAmount = 0;
         uint256 roundWei = 0;
         uint256 weiRaisedIntermediate = weiDelivered;
@@ -571,9 +396,7 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
                 calculatedTokenAmount = calculatedTokenAmount.add(weiAmount.mul(roundRates[curRound]));
                 break;
             }
-            TokenCalculate(curRound, weiRaisedIntermediate, weiAmount, calculatedTokenAmount);
         }
-
         return calculatedTokenAmount;
     }
 
@@ -583,8 +406,8 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
      * @param _tokenAmount Value in token to be converted into wei
      * @return Number of ether that required to purchase with the specified _tokenAmount
      */
-    function getEthAmount(uint256 _tokenAmount) public view returns (uint256) {
-        uint curRound = getCurrentRound();
+    function _getEthAmount(uint256 _tokenAmount) internal view returns (uint256) {
+        uint curRound = _getCurrentRound();
         uint256 calculatedWeiAmount = 0;
         uint256 roundWei = 0;
         uint256 weiRaisedIntermediate = weiDelivered;
@@ -606,32 +429,15 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         return calculatedWeiAmount;
     }
 
-    /**
-     * Minimum Contribution amount per Contributor is 0.1 ETH.
-     *
-     * @param _contributor Address performing the token purchase
-     * @param _weiAmount Value in wei involved in the purchase
-     */
-    function _preValidatePurchase(address _contributor, uint256 _weiAmount) internal {
-        require(_weiAmount > minContribution);
-        require(weiDelivered.add(_weiAmount) <= roundGoals[4]);
-        super._preValidatePurchase(_contributor, _weiAmount);
-    }
-
-
     function _forwardFunds() internal {
-        Contributor memory contributor = contributors[msg.sender];
-        if (contributor.whitelisted) {
-            _deliverTokens(msg.sender);
-        }
-    }
-
-    function _processPurchase(address _contributor, uint256 _tokenAmount) internal {
-        Contributor storage contributor = contributors[_contributor];
+        Contributor storage contributor = contributors[msg.sender];
         contributor.eth = contributor.eth.add(msg.value);
         if (contributor.created == false) {
             contributor.created = true;
-            addresses.push(_contributor);
+            addresses.push(msg.sender);
+        }
+        if (contributor.whitelisted) {
+            _deliverTokens(msg.sender);
         }
     }
 
@@ -645,7 +451,7 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         contributor.eth = 0;
         weiDelivered = weiDelivered.add(amountEth);
         wallet.transfer(amountEth);
-        super._deliverTokens(_contributor, amountToken);
+        token.transfer(_contributor, amountToken);
     }
 
     function _refundTokens(address _contributor) internal {
@@ -653,7 +459,7 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         uint256 ethAmount = contributor.eth;
         require(ethAmount > 0);
         contributor.eth = 0;
-        weiRaised = weiRaised.sub(ethAmount);
+        TokenRefund(_contributor, ethAmount);
         _contributor.transfer(ethAmount);
     }
 
@@ -668,5 +474,62 @@ contract XdacTokenCrowdsale is Crowdsale, Ownable {
         if (contributor.eth > 0) {
             _deliverTokens(_contributor);
         }
+    }
+
+    /**********************owner*************************/
+
+    function whitelistAddresses(address[] _contributors) public onlyOwner {
+        for (uint256 i = 0; i < _contributors.length; i++) {
+            _whitelistAddress(_contributors[i]);
+        }
+    }
+
+
+    function whitelistAddress(address _contributor) public onlyOwner {
+        _whitelistAddress(_contributor);
+    }
+
+    function transferTokenOwnership(address _newOwner) public onlyOwner returns(bool success) {
+        XdacToken _token = XdacToken(token);
+        _token.transferOwnership(_newOwner);
+        return true;
+    }
+
+    /**
+     * @dev Refound tokens. For owner
+     */
+    function refundTokensForAddress(address _contributor) public onlyOwner {
+        _refundTokens(_contributor);
+    }
+
+
+    /**********************contributor*************************/
+
+    function getAddresses() public onlyOwner view returns (address[] )  {
+        return addresses;
+    }
+
+    /**
+    * @dev Refound tokens. For contributors
+    */
+    function refundTokens() public {
+        _refundTokens(msg.sender);
+    }
+    /**
+     * @dev Returns tokens according to rate
+     */
+    function getTokenAmount(uint256 _weiAmount) public view returns (uint256) {
+        return _getTokenAmount(_weiAmount);
+    }
+
+    /**
+     * @dev Returns ether according to rate
+     */
+    function getEthAmount(uint256 _tokenAmount) public view returns (uint256) {
+        return _getEthAmount(_tokenAmount);
+    }
+
+    function getCurrentRate() public view returns (uint256) {
+        return roundRates[_getCurrentRound()];
     }
 }

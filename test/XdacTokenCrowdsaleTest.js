@@ -44,18 +44,15 @@ contract('XdacTokenCrowdsale', function ([owner, wallet, investor]) {
   })
 
   it('should create crowdsale with correct parameters', async function () {
-
     this.crowdsale.should.exist
-    const rate = await this.crowdsale.rate()
     const walletAddress = await this.crowdsale.wallet()
-    rate.should.be.bignumber.equal(rates[0])
     walletAddress.should.be.equal(wallet)
   })
 
   it('should allow admin refunds', async function () {
     const balanceBeforeInvestment = web3.eth.getBalance(investor);
     await this.crowdsale.buyTokens(investor, { value: ether(0.01), from: investor, gasPrice: 0 });
-    let contributor = await this.crowdsale.getContributorValues(investor)
+    let contributor = await this.crowdsale.contributors.call(investor)
     contributor[0].should.be.bignumber.equal(ether(0.01))
     await this.crowdsale.refundTokensForAddress(investor, {from:owner}).should.be.fulfilled;
     const balanceAfterRefund = web3.eth.getBalance(investor);
@@ -65,7 +62,7 @@ contract('XdacTokenCrowdsale', function ([owner, wallet, investor]) {
   it('should allow refunds', async function () {
     const balanceBeforeInvestment = web3.eth.getBalance(investor);
     await this.crowdsale.buyTokens(investor, { value: ether(0.01), from: investor, gasPrice: 0 });
-    let contributor = await this.crowdsale.getContributorValues(investor)
+    let contributor = await this.crowdsale.contributors.call(investor)
     contributor[0].should.be.bignumber.equal(ether(0.01))
     await this.crowdsale.refundTokens({ from: investor, gasPrice: 0 }).should.be.fulfilled;
 
@@ -74,7 +71,7 @@ contract('XdacTokenCrowdsale', function ([owner, wallet, investor]) {
   });
 
   it('should allow admin to change token owner', async function () {
-    let tokenAddr = await this.crowdsale.getToken()
+    let tokenAddr = await this.crowdsale.token()
     const ownerOld = await XdacToken.at(tokenAddr).owner()
     await this.crowdsale.transferTokenOwnership(investor).should.be.fulfilled;
     const ownerNew = await XdacToken.at(tokenAddr).owner()
@@ -83,7 +80,7 @@ contract('XdacTokenCrowdsale', function ([owner, wallet, investor]) {
 
   it('should allow whitelist investor', async function () {
     await this.crowdsale.whitelistAddress(investor).should.be.fulfilled
-    let contributor = await this.crowdsale.getContributorValues(investor).should.be.fulfilled
+    let contributor = await this.crowdsale.contributors.call(investor).should.be.fulfilled
     contributor[1].should.be.true
   })
 
@@ -103,10 +100,10 @@ contract('XdacTokenCrowdsale', function ([owner, wallet, investor]) {
 
   it('should accept payments during the sale for whitelisted address', async function () {
     await this.crowdsale.whitelistAddress(investor).should.be.fulfilled
-    let contributor = await this.crowdsale.getContributorValues(investor).should.be.fulfilled
+    let contributor = await this.crowdsale.contributors.call(investor).should.be.fulfilled
     contributor[1].should.be.true
 
-    let token = await this.crowdsale.getToken().should.be.fulfilled
+    let token = await this.crowdsale.token().should.be.fulfilled
 
     //ROUND 0
     const expectedTokenAmount1 = rates[0].mul(ether(0.01))
@@ -148,19 +145,22 @@ contract('XdacTokenCrowdsale', function ([owner, wallet, investor]) {
 
   it('should forward ether and tokens after whitelisting', async function () {
 
-    const token = await this.crowdsale.getToken().should.be.fulfilled
+    const etherAmount = ether(0.01);
+    const expectedTokenAmount = rates[0].mul(etherAmount)
 
-    const expectedTokenAmount1 = rates[0].mul(ether(0.01))
-    await this.crowdsale.buyTokens(investor, { value: ether(0.01), from: investor }).should.be.fulfilled
-    const beforeWhitelisting = await this.crowdsale.getContributorValues(investor).should.be.fulfilled
-    beforeWhitelisting[0].should.be.bignumber.equal(ether(0.01))
+    await this.crowdsale.buyTokens(investor, { value: etherAmount, from: investor }).should.be.fulfilled
+    const beforeWhitelisting = await this.crowdsale.contributors.call(investor).should.be.fulfilled
+    beforeWhitelisting[0].should.be.bignumber.equal(etherAmount)
 
     await this.crowdsale.whitelistAddress(investor).should.be.fulfilled
 
-    const afterWhitelisting = await this.crowdsale.getContributorValues(investor).should.be.fulfilled
+    const afterWhitelisting = await this.crowdsale.contributors.call(investor).should.be.fulfilled
     afterWhitelisting[1].should.be.true
+
+    const token = await this.crowdsale.token().should.be.fulfilled
     const balance = await XdacToken.at(token).balanceOf(investor)
-    balance.should.be.bignumber.equal(expectedTokenAmount1)
+    balance.should.be.bignumber.equal(expectedTokenAmount)
+
   })
 
 
