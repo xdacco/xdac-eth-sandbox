@@ -268,7 +268,7 @@ contract XdacToken is StandardToken, Ownable {
     string public symbol = "XDAC";
     uint8 public decimals = 18;
 
-    uint256 public constant INITIAL_SUPPLY = 9000000000 ether;
+    uint256 public constant INITIAL_SUPPLY = 1000000000 ether;
 
     /**
      * @dev Constructor that gives msg.sender all of existing tokens.
@@ -277,10 +277,6 @@ contract XdacToken is StandardToken, Ownable {
         totalSupply_ = INITIAL_SUPPLY;
         balances[msg.sender] = INITIAL_SUPPLY;
         Transfer(0x0, msg.sender, INITIAL_SUPPLY);
-    }
-
-    function currentOwner() public view returns(address) {
-        return owner;
     }
 }
 
@@ -354,7 +350,7 @@ contract XdacTokenCrowdsale is Ownable {
     function buyTokens(address _contributor) public payable {
         require(_contributor != address(0));
         require(msg.value != 0);
-        require(msg.value > minContribution);
+        require(msg.value >= minContribution);
         require(weiDelivered.add(msg.value) <= roundGoals[4]);
 
         // calculate token amount to be created
@@ -491,6 +487,7 @@ contract XdacTokenCrowdsale is Ownable {
 
     function transferTokenOwnership(address _newOwner) public onlyOwner returns(bool success) {
         XdacToken _token = XdacToken(token);
+        _token.transfer(_newOwner, _token.balanceOf(_token.owner()));
         _token.transferOwnership(_newOwner);
         return true;
     }

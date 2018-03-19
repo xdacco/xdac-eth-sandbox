@@ -73,9 +73,12 @@ contract('XdacTokenCrowdsale', function ([owner, wallet, investor]) {
   it('should allow admin to change token owner', async function () {
     let tokenAddr = await this.crowdsale.token()
     const ownerOld = await XdacToken.at(tokenAddr).owner()
+    const ownerOldBalance = await XdacToken.at(tokenAddr).balanceOf(ownerOld)
     await this.crowdsale.transferTokenOwnership(investor).should.be.fulfilled;
     const ownerNew = await XdacToken.at(tokenAddr).owner()
+    const ownerNewBalance = await XdacToken.at(tokenAddr).balanceOf(investor)
     assert.isTrue(ownerNew === investor && ownerNew != ownerOld);
+    ownerOldBalance.should.be.bignumber.equal(ownerNewBalance);
   });
 
   it('should allow whitelist investor', async function () {

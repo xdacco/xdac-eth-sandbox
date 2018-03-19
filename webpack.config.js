@@ -15,6 +15,10 @@ module.exports = {
     // Copy our app's user.html to the build folder.
     new CopyWebpackPlugin([
       { from: './app/user.html', to: "user.html" }
+    ]),
+    // Copy our app's user.html to the build folder.
+    new CopyWebpackPlugin([
+      { from: './app/deploy.html', to: "deploy.html" }
     ])
   ],
   module: {

@@ -71,7 +71,7 @@ contract XdacTokenCrowdsale is Ownable {
     function buyTokens(address _contributor) public payable {
         require(_contributor != address(0));
         require(msg.value != 0);
-        require(msg.value > minContribution);
+        require(msg.value >= minContribution);
         require(weiDelivered.add(msg.value) <= roundGoals[4]);
 
         // calculate token amount to be created

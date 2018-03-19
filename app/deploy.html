@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>XDAC - Frontend</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./app.js"></script>
+</head>
+<body>
+
+  <a href="user.html">user area</a> | <a href="index.html">admin area</a>
+  <br><h1>XDAC Crowdsale Admin </h1>
+  <br><br><label for="address">Contract:</label><input type="text" id="address" value="" readonly></input>
+  <br><br><label for="account">Account:</label><input  type="text" id="account" readonly></input>
+  <br><br>
+  <br><h2>Deploy new Contract</h2>
+  <br><br><label for="minContribution">Min contribution:</label><input type="text" id="minContribution" value="0.1"></input> <button id="deploy" onclick="App.deploy()">deploy new</button>
+  <br><br>
+  <table cellpadding="10" cellspacing="0" border="1">
+    <thead>
+      <tr>
+        <th>Round</th>
+        <th>Goal</th>
+        <th>Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td>Pre ICO</td>
+      <td><input type="number" value="1400" id="goal_0"></td>
+      <td><input type="number" value="12500" id="rate_0"></td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td><input type="number" value="9900" id="goal_1"></td>
+      <td><input type="number" value="12000" id="rate_1"></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><input type="number" value="18400" id="goal_2"></td>
+      <td><input type="number" value="11500" id="rate_2"></td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><input type="number" value="26900" id="goal_3"></td>
+      <td><input type="number" value="11000" id="rate_3"></td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><input type="number" value="35400" id="goal_4"></td>
+      <td><input type="number" value="10500" id="rate_4"></td>
+    </tr>
+    </tbody>
+  </table>
+
+  <span id="status"></span>
+  <br>
+  <span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
+</body>
+</html>

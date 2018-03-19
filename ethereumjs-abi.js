@@ -18,11 +18,11 @@ var res = abi.rawEncode(
   [
     '0x315F5Ea9f407e386b45796856012c0e07068C18a',
     [
-      ether('5').toString(),
-      ether('10').toString(),
-      ether('15').toString(),
-      ether('20').toString(),
-      ether('25').toString()
+      ether('1400').toString(),
+      ether('9900').toString(),
+      ether('18400').toString(),
+      ether('26900').toString(),
+      ether('35400').toString()
     ],
     [
       12500,

@@ -7,13 +7,13 @@ function ether(n) {
 
 module.exports = function(deployer, network, accounts) {
 
-  // const goals = [
-  //   ether(1400),
-  //   ether(9900),
-  //   ether(18400),
-  //   ether(26900),
-  //   ether(35400)
-  // ]
+  const goals = [
+    ether(1400),
+    ether(9900),
+    ether(18400),
+    ether(26900),
+    ether(35400)
+  ]
   // const minContribution = 0.1
   //
   // const rates = [
@@ -24,13 +24,13 @@ module.exports = function(deployer, network, accounts) {
   //   new BigNumber(10500),
   // ]
 
-  const goals = [
-    ether(0.5),
-    ether(1),
-    ether(1.5),
-    ether(2),
-    ether(2.5)
-  ]
+  // const goals = [
+  //   ether(0.5),
+  //   ether(1),
+  //   ether(1.5),
+  //   ether(2),
+  //   ether(2.5)
+  // ]
 
   const rates = [
     new BigNumber(12500),
