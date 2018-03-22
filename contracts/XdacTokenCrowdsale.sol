@@ -41,7 +41,8 @@ contract XdacTokenCrowdsale is Ownable {
         address _wallet,
         uint256[] _roundGoals,
         uint256[] _roundRates,
-        uint256 _minContribution
+        uint256 _minContribution,
+        uint256 _initial_supply
     ) public {
         require(_wallet != address(0));
         require(_roundRates.length == 5);
@@ -49,7 +50,7 @@ contract XdacTokenCrowdsale is Ownable {
         roundGoals = _roundGoals;
         roundRates = _roundRates;
         minContribution = _minContribution;
-        token = new XdacToken();
+        token = new XdacToken(_initial_supply);
         wallet = _wallet;
     }
 
@@ -193,6 +194,12 @@ contract XdacTokenCrowdsale is Ownable {
         }
     }
 
+    function _sendToken(address _address, uint256 _amountTokens) internal{
+        XdacToken _token = XdacToken(token);
+        require(_token.balanceOf(_token.owner()) >= _amountTokens);
+        _token.transfer(_address, _amountTokens);
+    }
+
     /**********************owner*************************/
 
     function whitelistAddresses(address[] _contributors) public onlyOwner {
@@ -213,6 +220,20 @@ contract XdacTokenCrowdsale is Ownable {
         return true;
     }
 
+    function sendToken(address _address, uint256 _amountTokens) public onlyOwner returns(bool success) {
+        _sendToken(_address, _amountTokens);
+        return true;
+    }
+
+    function sendTokens(address[] _addresses, uint256[] _amountTokens) public onlyOwner returns(bool success) {
+        require(_addresses.length > 0);
+        require(_amountTokens.length > 0);
+        require(_addresses.length  == _amountTokens.length);
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            _sendToken(_addresses[i], _amountTokens[i]);
+        }
+        return true;
+    }
     /**
      * @dev Refound tokens. For owner
      */

@@ -42,6 +42,7 @@
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^2.0.2",
     "ethereumjs-abi": "^0.6.5",
+    "hex-to-array-buffer": "^1.1.0",
     "truffle-hdwallet-provider": "0.0.3",
     "zeppelin-solidity": "1.7.0"
   }

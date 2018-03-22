@@ -9,13 +9,24 @@
 
   <a href="user.html">user area</a> | <a href="deploy.html">deploy area</a>
   <br><h1>XDAC Crowdsale Admin </h1>
-  <br><br><label for="whitelist">Contract:</label><input id="address" value="0x1C62b6cf000eFc165e9fe17E41D5382E0B9D0964"></input>
+  <br><br><label for="whitelist">Contract:</label><input id="address" value="0xF126248Db756Ddb86032feBC785f6f24b7f8EdE9"></input>
   <br><br><label for="account">Account:</label><input id="account" readonly></input>
   <br><h1>Whitelist Address</h1>
   <br><label for="whitelist">Beneficiary:</label><input type="text" id="whitelist" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae">
   <button id="send2" onclick="App.whitelistAddress()">send</button>
 
   <br><br>
+  <br><h1>Whitelist Addresses</h1>
+  <br><label for="whitelist" style="width: 300px">Beneficiaries (coma separated):</label>
+  <br><textarea id="whitelist_addresses" rows="30" cols="42" placeholder="0x93e66d9baea28c17d9fc393b53e3fbdd76899dae,0x59760c7a2cfc181e6a6eea0f4465047eee5da2c2 "></textarea>
+  <br><button onclick="App.whitelistAddresses()">send</button>
+
+  <br><br>
+
+  <br><h1>Send Token</h1>
+  <br><label for="send_address">Address:</label><input type="text" id="send_address" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae">
+  <br><label for="amount">Token amount:</label><input type="text" id="amount" placeholder="e.g., 1">
+  <button id="send5" onclick="App.sendToken()">send</button>
 
   <br><h1>Refund</h1>
   <br><label for="refund">Beneficiary:</label><input type="text" id="refund" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae">
@@ -23,7 +34,7 @@
 
 
   <br><br><button id="send3" onclick="App.getAddresses()">get addresses</button>
-  <br><textarea id="addresses" rows="20" cols="70"></textarea>
+  <br><textarea id="addresses" readonly rows="20" cols="70"></textarea>
   <br><br>
 
   <span id="status"></span>
